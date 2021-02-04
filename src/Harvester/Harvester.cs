@@ -22,7 +22,7 @@ namespace BloomHarvester
 	// This class is responsible for coordinating the running of the application logic
 	internal class Harvester : IDisposable
 	{
-		private const int kCreateArtifactsTimeoutSecs = 300;
+		private const int kCreateArtifactsTimeoutSecs = 600;
 		private const int kGetFontsTimeoutSecs = 20;
 		private const bool kEnableLoggingSkippedBooks = false;
 
