@@ -94,7 +94,7 @@ namespace BloomHarvester
 	[Verb("harvest", HelpText = "Run Harvester on a set of books")]
 	public class HarvesterOptions
 	{
-		[Option("mode", Required = true, HelpText = "Which mode to run Harvester in, e.g. \"Default\", \"All\", \"NewOrUpdatedOnly\"")]
+		[Option("mode", Required = true, HelpText = "Which mode to run Harvester in, e.g. \"Default\", \"All\", \"HarvestNeeded\"")]
 		public HarvestMode Mode { get; set; }
 
 		[Option('e', "environment", Required = false, Default = EnvironmentSetting.Dev, HelpText = "Sets all environments to read/write from. Valid values are Default, Dev, Test, or Prod. If any individual component's environment are set to non-default, that value will take precedence over this.")]

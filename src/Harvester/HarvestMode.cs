@@ -8,6 +8,6 @@ namespace BloomHarvester
 		All,	// Processes all books normally, except for books that are already In Progress by something else
 		Default,
 		RetryFailuresOnly,
-		NewOrUpdatedOnly,
+		HarvestNeeded,	// includes New or Updated or Requested (or Unknown)
 	}
 }

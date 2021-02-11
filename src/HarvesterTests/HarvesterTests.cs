@@ -276,7 +276,7 @@ namespace BloomHarvesterTests
 		[TestCase(HarvestMode.All)]
 		[TestCase(HarvestMode.Default)]
 		[TestCase(HarvestMode.ForceAll)]
-		[TestCase(HarvestMode.NewOrUpdatedOnly)]
+		[TestCase(HarvestMode.HarvestNeeded)]
 		[TestCase(HarvestMode.RetryFailuresOnly)]
 		public void ShouldProcessBook_FailedIndefinitelyState_ProcessOnlyIfForced(HarvestMode mode)
 		{
@@ -363,13 +363,13 @@ namespace BloomHarvesterTests
 
 		#region QueryWhereOptimization tests
 		[Test]
-		public void GetQueryWhereOptimizations_NewOrUpdatedOnlyMode()
+		public void GetQueryWhereOptimizations_HarvestNeededMode()
 		{
-			using (Harvester harvester = new Harvester(new HarvesterOptions() { Mode = HarvestMode.NewOrUpdatedOnly, SuppressLogs = true, Environment = EnvironmentSetting.Local, ParseDBEnvironment = EnvironmentSetting.Local }))
+			using (Harvester harvester = new Harvester(new HarvesterOptions() { Mode = HarvestMode.HarvestNeeded, SuppressLogs = true, Environment = EnvironmentSetting.Local, ParseDBEnvironment = EnvironmentSetting.Local }))
 			{
 				var result = harvester.GetQueryWhereOptimizations();
 				Assert.AreEqual(2, result.Count);
-				Assert.AreEqual("\"harvestState\" : { \"$in\": [\"New\", \"Updated\", \"Unknown\"]}", result[0]);
+				Assert.AreEqual("\"harvestState\" : { \"$in\": [\"New\", \"Updated\", \"Unknown\", \"Requested\"]}", result[0]);
 				Assert.AreEqual("\"$or\":[{\"inCirculation\":true},{\"inCirculation\":{\"$exists\":false}}]", result[1]);
 			}
 		}
@@ -539,6 +539,7 @@ namespace BloomHarvesterTests
 		[TestCase(HarvestState.Updated)]
 		[TestCase(HarvestState.Unknown)]
 		[TestCase(HarvestState.FailedIndefinitely)]
+		[TestCase(HarvestState.Requested)]
 		public void ProcessOneBook_HarvesterException_ProcessBookErrorRecorded(HarvestState initialState)
 		{
 			var options = GetHarvesterOptionsForProcessOneBookTests();
