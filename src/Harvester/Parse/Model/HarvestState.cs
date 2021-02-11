@@ -9,6 +9,7 @@
 		Done,
 		Failed,
 		FailedIndefinitely, // set manually for books that shouldn't be retried until the book is updated
-		Aborted
+		Aborted,
+		Requested	// set manually for books that need to be retried asap
 	}
 }

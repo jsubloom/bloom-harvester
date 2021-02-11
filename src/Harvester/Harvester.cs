@@ -344,15 +344,17 @@ namespace BloomHarvester
 						continue;
 					}
 
-					// Prioritize New books first.
+					// Prioritize Requested books first, then New books, and then Updated books.
 					// It would be nice to push this into the Parse query, but the "order" parameter seems to only allow sorting by a field. Can't find any info about sorting by more complicated expressions.
 					//
 					// Current assumptions are that the program is normally run in Default Mode with count=1 and loop flag set.
 					// Also that it does not take long to get the results of the Parse query or sort them.
 					// In that scenario I think it makes sense to just do a single Parse query
 					// But if assumptions change (like if usual call parameters change or it becomes expensive to retrieve all the columns from Parse), it could become worthwhile to split into multiple Parse queries.
-					bookList = bookList.OrderByDescending(x => x.HarvestState == Parse.Model.HarvestState.New.ToString())   // TRUE (1) cases first, FALSE (0) cases second. i.e. State=New first, then everything else
-						.ThenByDescending(x => x.HarvestState == Parse.Model.HarvestState.Updated.ToString())	// State=Updated first, then everything else.
+					bookList = bookList
+						.OrderByDescending(x => x.HarvestState == HarvestState.Requested.ToString())   // TRUE (1) cases first, FALSE (0) cases second. i.e. State=Requested first, then everything else
+						.ThenByDescending(x => x.HarvestState == HarvestState.New.ToString()) // State=New second, then everything else
+						.ThenByDescending(x => x.HarvestState == HarvestState.Updated.ToString())	// State=Updated third, then everything else.
 						// Enhance: Could also add another level to check whether the book's updatedTime < start time of the program. It would help in situations like where mode=all, count=1, and loop=true to ensure that every book gets processed once first before probably re-doing some books. But this is not normally needed when mode=default
 						.ThenBy(x => _rng.Next());   // Randomize within each section.
 
@@ -509,9 +511,9 @@ namespace BloomHarvester
 					// all books in circulation
 					whereOptimizationConditions.Add(inCirculation);
 					break;
-				case HarvestMode.NewOrUpdatedOnly:
-					// all books in circulation AND with the state in [New, Updated, Unknown]
-					whereOptimizationConditions.Add("\"harvestState\" : { \"$in\": [\"New\", \"Updated\", \"Unknown\"]}");
+				case HarvestMode.HarvestNeeded:
+					// all books in circulation AND with the state in [New, Updated, Unknown, Requested]
+					whereOptimizationConditions.Add("\"harvestState\" : { \"$in\": [\"New\", \"Updated\", \"Unknown\", \"Requested\"]}");
 					whereOptimizationConditions.Add(inCirculation);
 					break;
 				case HarvestMode.RetryFailuresOnly:
@@ -936,7 +938,7 @@ namespace BloomHarvester
 				return false;
 			}
 
-			bool isNewOrUpdatedState = (state == Parse.Model.HarvestState.New || state == Parse.Model.HarvestState.Updated);
+			var needToRunState = state == HarvestState.New || state == HarvestState.Updated || state == HarvestState.Requested;
 
 			// This is an important exception-to-the-rule case for almost every scenario,
 			// so let's get it out of the way first.
@@ -963,16 +965,16 @@ namespace BloomHarvester
 				reason = $"PROCESS: Mode = HarvestAll";
 				return true;
 			}
-			else if (harvestMode == HarvestMode.NewOrUpdatedOnly)
+			else if (harvestMode == HarvestMode.HarvestNeeded)
 			{
-				if (isNewOrUpdatedState)
+				if (needToRunState)
 				{
-					reason = "PROCESS: New or Updated state";
+					reason = "PROCESS: Requested, New, or Updated state";
 					return true;
 				}
 				else
 				{
-					reason = "SKIP: Not new or updated.";
+					reason = "SKIP: Not requested, new, or updated.";
 					return false;
 				}
 			}
@@ -996,11 +998,12 @@ namespace BloomHarvester
 				Version previouslyUsedVersion = new Version(book.HarvesterMajorVersion, book.HarvesterMinorVersion);
 				switch (state)
 				{
-					case Parse.Model.HarvestState.New:
-					case Parse.Model.HarvestState.Updated:
-					case Parse.Model.HarvestState.Unknown:
+					case HarvestState.Requested:
+					case HarvestState.New:
+					case HarvestState.Updated:
+					case HarvestState.Unknown:
 					default:
-						reason = "PROCESS: New or Updated state";
+						reason = "PROCESS: Requested, New, or Updated state";
 						return true;
 					case Parse.Model.HarvestState.Done:
 						if (currentVersion.Major > book.HarvesterMajorVersion)
