@@ -51,7 +51,7 @@ namespace BloomHarvester.WebLibraryIntegration
 		}
 		internal List<ErrorReport> TestErrorReports = new List<ErrorReport>();
 
-		private void ReportToYouTrack(string projectKey, string summary, string description, bool exitImmediately)
+		private void ReportToYouTrack(string projectKey, string summary, string description, bool exitImmediately, BookModel bookModel = null)
 		{
 			Console.Error.WriteLine("ERROR: " + summary);
 			Console.Error.WriteLine("==========================");
@@ -73,7 +73,7 @@ namespace BloomHarvester.WebLibraryIntegration
 			}
 			else
 			{
-				string youTrackIssueId = SubmitToYouTrack(summary, description, projectKey);
+				string youTrackIssueId = SubmitToYouTrack(summary, description, projectKey, bookModel);
 				if (!String.IsNullOrEmpty(youTrackIssueId))
 				{
 					Console.Out.WriteLine($"Created YouTrack issue {youTrackIssueId}");
@@ -91,9 +91,9 @@ namespace BloomHarvester.WebLibraryIntegration
 			}
 		}
 
-		internal static string SubmitToYouTrack(string summary, string description, string youTrackProjectKey)
+		internal static string SubmitToYouTrack(string summary, string description, string youTrackProjectKey, BookModel bookModel = null)
 		{
-			bool isSilenced = AlertManager.Instance.RecordAlertAndCheckIfSilenced();
+			bool isSilenced = AlertManager.Instance.RecordAlertAndCheckIfSilenced(bookModel);
 			if (isSilenced)
 			{
 				// Alerts are silenced because too many alerts.
@@ -119,7 +119,7 @@ namespace BloomHarvester.WebLibraryIntegration
 				GetDiagnosticInfo(bookModel, this.EnvironmentSetting) + "\n\n" +
 				GetIssueDescriptionFromException(exception);
 
-			ReportToYouTrack(_youTrackProjectKeyErrors, summary, description, exitImmediately);
+			ReportToYouTrack(_youTrackProjectKeyErrors, summary, description, exitImmediately, bookModel);
 		}
 
 		private static string GetIssueDescriptionFromException(Exception exception)
@@ -169,7 +169,7 @@ namespace BloomHarvester.WebLibraryIntegration
 				GetDiagnosticInfo(bookModel, this.EnvironmentSetting) + '\n' +
 				errorDetails;
 
-			ReportToYouTrack(_youTrackProjectKeyErrors, summary, description, exitImmediately: false);
+			ReportToYouTrack(_youTrackProjectKeyErrors, summary, description, exitImmediately: false, bookModel: bookModel);
 		}
 
 		public void ReportMissingFont(string missingFontName, string harvesterId, BookModel bookModel = null)
@@ -179,7 +179,7 @@ namespace BloomHarvester.WebLibraryIntegration
 			string description = $"Missing font \"{missingFontName}\" on machine \"{harvesterId}\".\n\n";
 			description += GetDiagnosticInfo(bookModel, this.EnvironmentSetting);
 
-			ReportToYouTrack(_youTrackProjectKeyMissingFonts, summary, description, exitImmediately: false);
+			ReportToYouTrack(_youTrackProjectKeyMissingFonts, summary, description, exitImmediately: false, bookModel: bookModel);
 		}
 
 		private static string GetDiagnosticInfo(BookModel bookModel, EnvironmentSetting environment)
