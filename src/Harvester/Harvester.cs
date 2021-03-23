@@ -856,6 +856,14 @@ namespace BloomHarvester
 				return false;
 			}
 
+			if (originalBookModel.HarvestState == HarvestState.Requested.ToString() ||
+			    originalBookModel.HarvestState == HarvestState.Updated.ToString())
+			{
+				// If the user requested reharvesting, or if the book is already marked "Updated",
+				// assume the book needs to be downloaded even if it's in the cache. (BL-9719)
+				return false;
+			}
+
 			// It's feasible to re-use the existing directory,
 			// but only if it actually exists
 			return Directory.Exists(pathToCheck);
