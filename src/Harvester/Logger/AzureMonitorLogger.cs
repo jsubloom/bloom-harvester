@@ -61,9 +61,13 @@ namespace BloomHarvester.Logger
 					// Check if the file is too big (~10 MB)
 					if (new FileInfo(logFilePath).Length > 10000000)
 					{
-						// Just delete it and start over anew if the log file is too big
-						// (The data is in Azure too anyway)
-						RobustFile.Delete(logFilePath);
+						var oldPath = logFilePath + "-OLD";
+						// Preserve one previous log file for debugging help, and start over with
+						// an empty log file.
+						// (The data is in Azure too anyway, but having it local may speed things up.)
+						if (RobustFile.Exists(oldPath))
+							RobustFile.Delete(oldPath);
+						RobustFile.Move(logFilePath, oldPath);
 					}
 				}
 			}

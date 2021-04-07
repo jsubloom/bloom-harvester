@@ -24,31 +24,37 @@ namespace BloomHarvester.Logger
 		public void LogCritical(string messageFormat, params object[] args)
 		{
 			writer.WriteLine(GetTimeInfo() + "Log Critical: " + messageFormat, args);
+			writer.Flush();
 		}
 
 		public void LogError(string messageFormat, params object[] args)
 		{
 			writer.WriteLine(GetTimeInfo() + "Log Error: " + messageFormat, args);
+			writer.Flush();
 		}
 
 		public void LogInfo(string messageFormat, params object[] args)
 		{
 			writer.WriteLine(GetTimeInfo() + "Log Info: " + messageFormat, args);
+			writer.Flush();
 		}
 
 		public void LogVerbose(string messageFormat, params object[] args)
 		{
 			writer.WriteLine(GetTimeInfo() + "Log Verbose: " + messageFormat, args);
+			writer.Flush();
 		}
 
 		public void LogWarn(string messageFormat, params object[] args)
 		{
 			writer.WriteLine(GetTimeInfo() + "Log Warn: " + messageFormat, args);
+			writer.Flush();
 		}
 
 		public void TrackEvent(string eventName)
 		{
 			writer.WriteLine($"{GetTimeInfo()}Event: {eventName}");
+			writer.Flush();
 		}
 
 		private string GetTimeInfo()
