@@ -61,7 +61,7 @@ namespace BloomHarvester
 				TimeStamp = DateTime.Now,
 				BookUrl = bookModel?.BaseUrl,
 				HarvestState = bookModel?.HarvestState,
-				UploaderId = bookModel?.Uploader.ObjectId,
+				UploaderId = bookModel?.Uploader?.ObjectId,
 			};
 			_alerts.AddLast(timeStamp);
 
