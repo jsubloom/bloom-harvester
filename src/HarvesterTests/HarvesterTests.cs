@@ -28,7 +28,7 @@ namespace BloomHarvesterTests
 		private IParseClient _fakeParseClient;
 		private IS3Client _fakeBloomS3Client;
 		private IS3Client _fakeS3UploadClient;
-		private IBookTransfer _fakeTransfer;
+		private IBookDownload _fakeDownload;
 		private IIssueReporter _fakeIssueReporter;
 		private IMonitorLogger _logger;
 		private IBloomCliInvoker _fakeBloomCli;
@@ -42,7 +42,7 @@ namespace BloomHarvesterTests
 			_fakeParseClient= null;
 			_fakeBloomS3Client = null;
 			_fakeS3UploadClient = null;
-			_fakeTransfer = null;
+			_fakeDownload = null;
 			_fakeIssueReporter = null;
 			_logger = Substitute.For<IMonitorLogger>();
 			_fakeBloomCli = null;
@@ -78,7 +78,7 @@ namespace BloomHarvesterTests
 		private void SetupMockBookDownloadHandler(string objectId, Harvester harvester)
 		{
 			var downloadFolder = Path.Combine(harvester.GetBookCacheFolder(), objectId);
-			_fakeTransfer.Configure().HandleDownloadWithoutProgress(default, default).ReturnsForAnyArgs(args =>
+			_fakeDownload.Configure().HandleDownloadWithoutProgress(default, default).ReturnsForAnyArgs(args =>
 			{
 				Directory.CreateDirectory(downloadFolder);
 				return downloadFolder;
@@ -395,7 +395,7 @@ namespace BloomHarvesterTests
 		#region ProcessOneBook() tests
 		private HarvesterOptions GetHarvesterOptionsForProcessOneBookTests() => new HarvesterOptions() { Mode = HarvestMode.All, SuppressLogs = true, Environment = EnvironmentSetting.Local, ParseDBEnvironment = EnvironmentSetting.Local };
 
-		private Harvester GetSubstituteHarvester(HarvesterOptions options, IBloomCliInvoker bloomCli = null, IParseClient parseClient = null, IBookTransfer transferClient = null, IS3Client s3DownloadClient = null, IS3Client s3UploadClient = null, IBookAnalyzer bookAnalyzer = null, IFontChecker fontChecker = null, IFileIO fileIO = null, IMonitorLogger logger = null)
+		private Harvester GetSubstituteHarvester(HarvesterOptions options, IBloomCliInvoker bloomCli = null, IParseClient parseClient = null, IBookDownload downloadClient = null, IS3Client s3DownloadClient = null, IS3Client s3UploadClient = null, IBookAnalyzer bookAnalyzer = null, IFontChecker fontChecker = null, IFileIO fileIO = null, IMonitorLogger logger = null)
 		{
 			if (logger != null)
 				_logger = logger;
@@ -423,7 +423,7 @@ namespace BloomHarvesterTests
 			_fakeParseClient = parseClient ?? Substitute.For<IParseClient>();
 			_fakeBloomS3Client = s3DownloadClient ?? Substitute.For<IS3Client>();
 			_fakeS3UploadClient = s3UploadClient ?? Substitute.For<IS3Client>();
-			_fakeTransfer = transferClient ?? Substitute.For<IBookTransfer>();
+			_fakeDownload = downloadClient ?? Substitute.For<IBookDownload>();
 
 			_fakeFileIO = fileIO ?? Substitute.For<IFileIO>();
 
@@ -439,7 +439,7 @@ namespace BloomHarvesterTests
 			else
 				_fakeFontChecker = fontChecker;
 
-			var harvester = Substitute.ForPartsOf<Harvester>(options, EnvironmentSetting.Local, identifier, _fakeParseClient, _fakeBloomS3Client, _fakeS3UploadClient, _fakeTransfer, _fakeIssueReporter, _logger, _fakeBloomCli, _fakeFontChecker, _fakeDiskSpaceManager, _fakeFileIO);
+			var harvester = Substitute.ForPartsOf<Harvester>(options, EnvironmentSetting.Local, identifier, _fakeParseClient, _fakeBloomS3Client, _fakeS3UploadClient, _fakeDownload, _fakeIssueReporter, _logger, _fakeBloomCli, _fakeFontChecker, _fakeDiskSpaceManager, _fakeFileIO);
 
 			harvester.Configure().GetAnalyzer(default).ReturnsForAnyArgs(bookAnalyzer ?? Substitute.For<IBookAnalyzer>());
 
@@ -849,11 +849,11 @@ namespace BloomHarvesterTests
 				Environment = EnvironmentSetting.Local,
 				SuppressLogs = true
 			};
-			var transferClient = Substitute.For<IBookTransfer>();
-			transferClient.Configure().HandleDownloadWithoutProgress(default, default).ReturnsForAnyArgs(args =>
+			var downloadClient = Substitute.For<IBookDownload>();
+			downloadClient.Configure().HandleDownloadWithoutProgress(default, default).ReturnsForAnyArgs(args =>
 				throw new DirectoryNotFoundException("The book we tried to download is no longer in the BloomLibrary"));
 			var logger = new StringListLogger();
-			using (var harvester = GetSubstituteHarvester(options, transferClient: transferClient,  logger: logger))
+			using (var harvester = GetSubstituteHarvester(options, downloadClient: downloadClient,  logger: logger))
 			{
 				string baseUrl = "https://s3.amazonaws.com/FakeBucket/fakeUploader%40gmail.com%2fFakeGuid%2fFakeTitle%2f";
 				var bookModel = new BookModel(baseUrl: baseUrl, title: "FakeTitle") {ObjectId = "123456789"};
@@ -907,7 +907,7 @@ namespace BloomHarvesterTests
 
 				// Validate
 				VerifyNoExceptions();
-				_fakeTransfer.ReceivedWithAnyArgs(1).HandleDownloadWithoutProgress(default, default);
+				_fakeDownload.ReceivedWithAnyArgs(1).HandleDownloadWithoutProgress(default, default);
 				_logger.Received(1).TrackEvent("Download Book");
 
 				// Cleanup
@@ -940,7 +940,7 @@ namespace BloomHarvesterTests
 
 				// Validate
 				VerifyNoExceptions();
-				_fakeTransfer.ReceivedWithAnyArgs(1).HandleDownloadWithoutProgress(default, default);
+				_fakeDownload.ReceivedWithAnyArgs(1).HandleDownloadWithoutProgress(default, default);
 				_logger.Received(1).TrackEvent("Download Book");
 
 				// Cleanup
@@ -971,7 +971,7 @@ namespace BloomHarvesterTests
 
 				// Validate
 				VerifyNoExceptions();
-				_fakeTransfer.DidNotReceiveWithAnyArgs().HandleDownloadWithoutProgress(default, default);
+				_fakeDownload.DidNotReceiveWithAnyArgs().HandleDownloadWithoutProgress(default, default);
 				_logger.DidNotReceive().TrackEvent("Download Book");
 
 				// Cleanup
@@ -1001,7 +1001,7 @@ namespace BloomHarvesterTests
 
 				// Validate
 				VerifyNoExceptions();
-				_fakeTransfer.DidNotReceiveWithAnyArgs().HandleDownloadWithoutProgress(default, default);
+				_fakeDownload.DidNotReceiveWithAnyArgs().HandleDownloadWithoutProgress(default, default);
 				_logger.DidNotReceive().TrackEvent("Download Book");
 
 				// Cleanup
@@ -1033,7 +1033,7 @@ namespace BloomHarvesterTests
 
 				// Validate
 				VerifyNoExceptions();
-				_fakeTransfer.ReceivedWithAnyArgs(1).HandleDownloadWithoutProgress(default, default);
+				_fakeDownload.ReceivedWithAnyArgs(1).HandleDownloadWithoutProgress(default, default);
 				_logger.Received(1).TrackEvent("Download Book");
 
 				// Cleanup

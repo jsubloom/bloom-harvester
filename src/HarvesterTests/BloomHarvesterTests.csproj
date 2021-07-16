@@ -30,8 +30,10 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-	<!-- Copy libtidy and its dependency, msvcr120.dll -->
+    <!-- Copy libtidy and its dependency, msvcr120.dll -->
     <Exec Command="copy /Y &quot;$(SolutionDir)\lib\dotnet\libtidy.dll&quot; $(OutDir)" />
-	<Exec Command="copy /Y &quot;$(SolutionDir)\lib\dotnet\msvcr120.dll&quot; $(OutDir)" />
+    <Exec Command="copy /Y &quot;$(SolutionDir)\lib\dotnet\msvcr120.dll&quot; $(OutDir)" />
+    <!-- Copy connections.dll to where tests can find it -->
+    <Exec Command="copy /Y &quot;$(SolutionDir)\lib\dotnet\DistFiles\connections.dll&quot; $(OutDir)" />
   </Target>
 </Project>
