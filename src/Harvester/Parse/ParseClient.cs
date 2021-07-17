@@ -56,9 +56,10 @@ namespace BloomHarvester.Parse
 	{
 		// Constructors
 		internal ParseClient(EnvironmentSetting environment, IMonitorLogger logger)
-			:base(CreateRestClient(environment))
+			:base()
 		{
 			_environmentSetting = environment;
+			_client = CreateRestClient(environment);
 			this.ApplicationId = GetApplicationId(environment);
 			Debug.Assert(!String.IsNullOrWhiteSpace(ApplicationId), "Parse Application ID is invalid. Retrieving books from Parse probably won't work. Consider checking your environment variables.");
 

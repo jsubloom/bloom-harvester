@@ -52,7 +52,7 @@ namespace BloomHarvester
 		protected readonly IParseClient _parseClient;
 		protected readonly IS3Client _bloomS3Client;
 		protected readonly IS3Client _s3UploadClient;  // Note that we upload books to a different bucket than we download them from, so we have a separate client.
-		private readonly IBookTransfer _transfer;
+		private readonly IBookDownload _downloadClient;
 		protected readonly IIssueReporter _issueReporter;
 		protected readonly IBloomCliInvoker _bloomCli;
 		private readonly IFontChecker _fontChecker;
@@ -80,12 +80,12 @@ namespace BloomHarvester
 			IParseClient parseClient,
 			IS3Client s3DownloadClient,
 			IS3Client s3uploadClient,
-			IBookTransfer transfer,
+			IBookDownload downloadClient,
 			IBloomCliInvoker bloomCli,
 			IDiskSpaceManager diskSpaceManager,
 			IFontChecker fontChecker
 			) args)
-			:this(options, args.parseDBEnvironment, args.identifier, args.parseClient, args.s3DownloadClient, args.s3uploadClient, args.transfer,
+			:this(options, args.parseDBEnvironment, args.identifier, args.parseClient, args.s3DownloadClient, args.s3uploadClient, args.downloadClient,
 				 args.issueReporter, args.logger, args.bloomCli, args.fontChecker, args.diskSpaceManager,
 				 fileIO: new FileIO())
 		{
@@ -102,7 +102,7 @@ namespace BloomHarvester
 		/// <param name="parseClient">The database client</param>
 		/// <param name="s3DownloadClient">The client that responsible for downloading books</param>
 		/// <param name="s3UploadClient">The client responsible for uploading harvested artifacts</param>
-		/// <param name="transfer">The transfer client which assists in downloading books</param>
+		/// <param name="downloadClient">The download client which assists in downloading books</param>
 		/// <param name="issueReporter">The issue tracking system</param>
 		/// <param name="logger">The component that logs the output to console, Azure monitor, etc</param>
 		/// <param name="bloomCliInvoker">Handles invoking the Bloom command line</param>
@@ -114,7 +114,7 @@ namespace BloomHarvester
 			IParseClient parseClient,
 			IS3Client s3DownloadClient,
 			IS3Client s3UploadClient,
-			IBookTransfer transfer,
+			IBookDownload downloadClient,
 			IIssueReporter issueReporter,
 			IMonitorLogger logger,
 			IBloomCliInvoker bloomCliInvoker,
@@ -130,7 +130,7 @@ namespace BloomHarvester
 			_parseClient = parseClient;
 			_bloomS3Client = s3DownloadClient;
 			_s3UploadClient = s3UploadClient;
-			_transfer = transfer;
+			_downloadClient = downloadClient;
 			_issueReporter = issueReporter;
 			_bloomCli = bloomCliInvoker;
 			_fontChecker = fontChecker;
@@ -158,7 +158,7 @@ namespace BloomHarvester
 			SetConsoleCtrlHandler(consoleExitHandler, add: true);
 		}
 		/// <summary>
-		/// Do a lot of complex initailization
+		/// Do a lot of complex initialization
 		/// A lot of this code is iterative statements that depends on previous statements...
 		/// writing it this way allows us to avoid numerous layers of constructor chaining that slowly add parameters one at a time
 		/// </summary>
@@ -172,7 +172,7 @@ namespace BloomHarvester
 			IParseClient parseClient,
 			IS3Client s3DownloadClient,
 			IS3Client s3uploadClient,
-			IBookTransfer transfer,
+			IBookDownload downloadClient,
 			IBloomCliInvoker bloomCli,
 			IDiskSpaceManager diskSpaceManager,
 			IFontChecker fontChecker
@@ -193,9 +193,8 @@ namespace BloomHarvester
 			var s3DownloadClient = new HarvesterS3Client(downloadBucketName, parseDBEnvironment, true);
 			var s3UploadClient = new HarvesterS3Client(uploadBucketName, parseDBEnvironment, false);
 
-			var transfer = new HarvesterBookTransfer(parseClient,
-				bloomS3Client: s3DownloadClient,
-				htmlThumbnailer: null);
+			var downloadClient = new HarvesterBookDownload(parseClient,
+				bloomS3Client: s3DownloadClient);
 
 			var bloomCli = new BloomCliInvoker(logger);
 			var fontChecker = new FontChecker(kGetFontsTimeoutSecs, bloomCli, logger);
@@ -203,7 +202,7 @@ namespace BloomHarvester
 			var driveInfo = GetHarvesterDrive();
 			var diskSpaceManager = new DiskSpaceManager(driveInfo, logger, issueReporter);
 
-			return (issueReporter, parseDBEnvironment, identifier, logger, parseClient, s3DownloadClient, s3UploadClient, transfer, bloomCli, diskSpaceManager, fontChecker);
+			return (issueReporter, parseDBEnvironment, identifier, logger, parseClient, s3DownloadClient, s3UploadClient, downloadClient, bloomCli, diskSpaceManager, fontChecker);
 		}
 
 		/// <summary>
@@ -752,12 +751,12 @@ namespace BloomHarvester
 				_diskSpaceManager?.CleanupIfNeeded();
 
 				// FYI, there's no need to delete this book folder first.
-				// _transfer.HandleDownloadWithoutProgress() removes outdated content for us.
+				// _downloadClient.HandleDownloadWithoutProgress() removes outdated content for us.
 				string urlWithoutTitle = RemoveBookTitleFromBaseUrl(decodedUrl);
 				string downloadRootDir = GetBookCacheFolder();
 				// HandleDownloadWithoutProgress has a nested subcall to BloomS3Client.cs::AvoidThisFile() which looks at HarvesterMode
 				Bloom.Program.RunningHarvesterMode = true;
-				var downloadedDir = _transfer.HandleDownloadWithoutProgress(urlWithoutTitle, downloadRootDir);
+				var downloadedDir = _downloadClient.HandleDownloadWithoutProgress(urlWithoutTitle, downloadRootDir);
 				// The download process appears to inherently use the book's title, so we need
 				// to rename the folder to what we want for caching purposes.
 				if (downloadedDir != downloadBookDir)
