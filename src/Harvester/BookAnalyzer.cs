@@ -210,8 +210,12 @@ namespace BloomHarvester
 		public static BookAnalyzer FromFolder(string bookFolder)
 		{
 			var filename = Path.GetFileName(bookFolder);
-			var bookPath = Bloom.Book.BookStorage.FindBookHtmlInFolder(bookFolder);						 
+			var bookPath = Bloom.Book.BookStorage.FindBookHtmlInFolder(bookFolder);
+			if (!File.Exists(bookPath))
+				throw new Exception("Incomplete upload: missing book's HTML file");
 			var metaPath = Path.Combine(bookFolder, "meta.json");
+			if (!File.Exists(metaPath))
+				throw new Exception("Incomplete upload: missing book's meta.json file");
 			return new BookAnalyzer(File.ReadAllText(bookPath, Encoding.UTF8),
 				File.ReadAllText(metaPath, Encoding.UTF8), bookFolder);
 		}
